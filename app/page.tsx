@@ -37,11 +37,28 @@ export default function Home() {
     ]);
   };
 
+  const runWorkflow = async () => {
+    const res = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nodes, edges }),
+    })
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error)
+      return
+    }
+    console.log("Sent, event id:", data.eventId);
+  }
+
   return (
     <FlowContext.Provider value={{ updateNodeData }}>
       <div className="w-screen h-screen">
         <button onClick={addNode} className="absolute z-10 top-4 left-4 bg-black text-white px-3 py-1 rounded text-sm">
           + Add Node
+        </button>
+        <button onClick={runWorkflow} className="absolute z-10 top-4 left-32 bg-green-600 text-white px-3 py-1 rounded text-sm cursor-pointer">
+          ▶ Run
         </button>
         <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onConnect={onConnect} nodeTypes={nodeTypes} fitView>
