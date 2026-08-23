@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Decision Flow
 
-## Getting Started
+Visual AI workflow builder. Each node is a binary decision step (`YES`/`NO`)
+evaluated by an LLM; edges route execution based on the answer. Execution
+runs through Inngest; the graph is authored and viewed in React Flow.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router) + TypeScript
+- React Flow — canvas, nodes, edges
+- Inngest — workflow execution, step orchestration
+- OpenAI SDK — pointed at Groq's OpenAI-compatible endpoint
+- Model: `openai/gpt-oss-20b` (via a FlyRank-issued proxy key with a
+  restricted model allowlist — only `gpt-oss-20b` / `gpt-oss-120b`
+  support structured outputs on this key)
+- Zod — constrains LLM output to strict `YES`/`NO`
+- Shadcn (Nova preset)
+
+## Setup
+
+```bash
+npm install
+```
+
+Create `.env.local`:
+   GROQ_API_KEY=your_key_here
+   INNGEST_DEV=1
+
+
+## Run
+
+Two terminals, both required:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+npx inngest-cli@latest dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Inngest dashboard: http://localhost:8288
+App: http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it works
 
-## Learn More
+1. Build a graph on the canvas — each node has a prompt, `YES`/`NO` source handles.
+2. Exactly one entry node required (zero incoming edges) — validated before run.
+3. All node prompts must be non-empty — validated before run.
+4. Hit Run → `/api/run` sends a `decision/execute` event with the full graph.
+5. Inngest walks the graph node-by-node (`executeWorkflowFn`), calling the
+   LLM per node, following the edge matching the returned answer, until a
+   terminal node (no matching outgoing edge) is reached.
+6. Frontend polls `/api/executions/[runId]` until the run completes, then
+   renders the trace in the logs panel and appends it to run history.
 
-To learn more about Next.js, take a look at the following resources:
+## Known limitations
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Execution records are stored in-process (`lib/execution-store.ts`, an
+  in-memory `Map`) — resets on server restart, not durable across
+  deployments. Fine for local/demo use; would need Redis or a DB otherwise.
+- Cycle guard caps traversal at `nodes.length` steps — prevents infinite
+  loops but doesn't detect cycles explicitly.
+- Fan-out (two edges off the same `yes`/`no` handle) isn't supported —
+  only the first matching edge is followed.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Status
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Phase 1 (Setup) — done
+- Phase 2 (Foundations) — done
+- Phase 3 (Core execution) — done
+- Phase 4 (Polish) — 3 of 9 picked: error handling, execution logs panel,
+  execution history

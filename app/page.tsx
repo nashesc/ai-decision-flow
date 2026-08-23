@@ -9,6 +9,7 @@ import { DecisionNode } from "@/components/flow/DecisionNode";
 import { FlowContext } from "@/lib/flow-context";import { LogsPanel } from "@/components/flow/LogsPanel";
 import { HistoryPanel } from "@/components/flow/HistoryPanel";
 import type { ExecutionRecord, TraceStep } from "@/lib/execution-store";
+import { Button } from "@/components/ui/button";
 
 const nodeTypes = { decision: DecisionNode };
 let idCounter = 1;
@@ -85,17 +86,17 @@ export default function Home() {
   return (
     <FlowContext.Provider value={{ updateNodeData }}>
       <div className="w-screen h-screen">
-        <button onClick={addNode} className="absolute z-10 top-4 left-4 bg-black text-white px-3 py-1 rounded text-sm">
+        <Button onClick={addNode} className="absolute z-10 top-4 left-4">
           + Add Node
-        </button>
-
-        <button
-          onClick={runWorkflow}
-          disabled={isRunning}
-          className="absolute z-10 top-4 left-32 bg-green-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+        </Button>
+        
+        <Button 
+          onClick={runWorkflow}  
+          disabled={isRunning} 
+          className="absolute z-10 top-4 left-32 bg-green-600 hover:bg-green-700"
         >
           {isRunning ? "Running…" : "▶ Run"}
-        </button>
+        </Button>
 
         <LogsPanel 
           isRunning={isRunning} 
