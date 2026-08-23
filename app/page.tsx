@@ -44,23 +44,24 @@ export default function Home() {
   };
 
   const pollExecution = (runId: string) => {
-    const interval = setInterval(async () => {
+    const poll = async () => {
       const res = await fetch(`/api/executions/${runId}`);
-      if (!res.ok) {
-        clearInterval(interval);
+        if (!res.ok) {
+          setIsRunning(false);
+          setCurrentError("Lost track of run status.");
+          return;
+        }
+        const rec: ExecutionRecord = await res.json();
+        if (rec.status === "running") {
+          setTimeout(poll, 1000);
+          return;
+        }
         setIsRunning(false);
-        setCurrentError("Lost track of run status.");
-        return;
-      }
-      
-      const rec: ExecutionRecord = await res.json();
-      if (rec.status === "running") return;
-      clearInterval(interval);
-      setIsRunning(false);
-      setCurrentTrace(rec.trace);
-      setCurrentError(rec.error ?? null);
-      setHistory((h) => [rec, ...h]);
-    }, 1000);
+        setCurrentTrace(rec.trace);
+        setCurrentError(rec.error ?? null);
+        setHistory((h) => (h.some((existing) => existing.id === rec.id) ? h : [rec, ...h]));
+      };
+      setTimeout(poll, 1000);
   };
 
   const runWorkflow = async () => {
